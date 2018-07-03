@@ -15,6 +15,10 @@ set(CUKE_SOURCES
     connectors/wire/WireServer.cpp
     connectors/wire/WireProtocol.cpp
     connectors/wire/WireProtocolCommands.cpp
+    connectors/gherkin/GherkinConnector.cpp
+    connectors/gherkin/parser/GherkinParser.cpp
+    connectors/gherkin/utility/Utility.cpp
+    connectors/gherkin/utility/Exceptions.cpp
     )
 
 if(TARGET GTest::GTest)
