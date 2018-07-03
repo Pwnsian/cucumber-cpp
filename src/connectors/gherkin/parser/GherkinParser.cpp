@@ -1,28 +1,31 @@
 #include <string>
 #include <string>
 #include <sstream>
-#include "gherkin-c/include/string_token_scanner.h"
-#include "gherkin-c/include/file_reader.h"
-#include "gherkin-c/include/token_matcher.h"
-#include "gherkin-c/include/ast_builder.h"
-#include "gherkin-c/include/parser.h"
-#include "gherkin-c/include/error.h"
-#include "utility/Exceptions.hpp"
-#include "parser/GherkinParser.hpp"
+#include <gherkin-c/include/string_token_scanner.h>
+#include <gherkin-c/include/file_reader.h>
+#include <gherkin-c/include/token_matcher.h>
+#include <gherkin-c/include/ast_builder.h>
+#include <gherkin-c/include/parser.h>
+#include <gherkin-c/include/error.h>
+#include <cucumber-cpp/internal/connectors/gherkin/utility/Exceptions.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/parser/GherkinParser.hpp>
+
+namespace cucumber {
+namespace internal {
 
 GherkinParser::GherkinParser(const std::string& filename)
-    : m_fileReader(nullptr)
-    , m_tokenScanner(nullptr)
-    , m_tokenMatcher(nullptr)
-    , m_bulder(nullptr)
-    , m_parser(nullptr)
+    : m_fileReader(NULL)
+    , m_tokenScanner(NULL)
+    , m_tokenMatcher(NULL)
+    , m_bulder(NULL)
+    , m_parser(NULL)
 {
     m_fileReader = FileReader_new(filename.c_str());
 
     // Gherkin-C's strange method of handling file not found. Handle it.
     // https://github.com/cucumber/gherkin-c/commit/db6ae6d2b99e68df47d774aac35f35109dc807a1
     const wchar_t* fileContents = FileReader_read(m_fileReader);
-    if(fileContents == L" ")
+    if(wcscmp(fileContents, L" ") == 0)
     {
         throw FileNotFoundException(filename);
     }
@@ -70,4 +73,7 @@ GherkinDocumentPtr GherkinParser::parse()
     }
 
     return GherkinDocumentPtr(AstBuilder_get_result(m_bulder));
+}
+
+}
 }

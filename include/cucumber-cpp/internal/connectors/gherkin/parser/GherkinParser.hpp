@@ -1,7 +1,10 @@
 #ifndef GHERKIN_PARSER_H
 #define GHERKIN_PARSER_H
 
-#include "utility/Types.hpp"
+#include "../utility/Types.hpp"
+
+namespace cucumber {
+namespace internal {
 
 class GherkinParser
 {
@@ -20,5 +23,8 @@ private:
     Builder* m_bulder;
     Parser* m_parser;    
 };
+
+}
+}
 
 #endif

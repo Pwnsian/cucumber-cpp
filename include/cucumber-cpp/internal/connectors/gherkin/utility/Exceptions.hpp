@@ -4,11 +4,15 @@
 #include <string>
 #include <exception>
 
+namespace cucumber {
+namespace internal {
+
 class StringException : public std::exception
 {
 public:
     StringException(const std::string& message);
-    virtual const char* what() const noexcept override;
+    virtual ~StringException() throw ();
+    virtual const char* what() const throw ();
 protected:
     std::string m_Message;
 };
@@ -24,5 +28,8 @@ class ParserErrorException : public StringException
 public:
     ParserErrorException(const std::string& message);
 };
+
+}
+}
 
 #endif

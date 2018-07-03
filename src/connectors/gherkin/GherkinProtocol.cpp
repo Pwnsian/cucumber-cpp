@@ -1,14 +1,17 @@
-#include "GherkinConnector.hpp"
-#include "Utility.h"
+#include <cucumber-cpp/internal/connectors/gherkin/parser/GherkinParser.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/GherkinProtocol.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/utility/Utility.hpp>
+#include <cucumber-cpp/internal/CukeEngineImpl.hpp>
 #include <gherkin-c/include/gherkin_document.h>
 #include <gherkin-c/include/feature.h>
 #include <gherkin-c/include/scenario.h>
 #include <gherkin-c/include/scenario_outline.h>
-#include <cucumber-cpp/internal/CukeEngineImpl.hpp>
+
+namespace cucumber {
+namespace internal {
 
 GherkinProtocolConnector::GherkinProtocolConnector(GherkinDocumentPtr document)
     : m_document(document)
-    , m_engine(new cucumber::internal::CukeEngineImpl())
 {
     
 }
@@ -24,7 +27,7 @@ void GherkinProtocolConnector::acceptOnce()
 
         if(scenario_def_i->type == Gherkin_Scenario)
         {
-            const Scenario* scenario = (const Scenario*)scenario_def_i;
+            const ::Scenario* scenario = (const ::Scenario*)scenario_def_i;
             runScenario(scenario);
         }
         else if(scenario_def_i->type == Gherkin_ScenarioOutline)
@@ -39,20 +42,38 @@ void GherkinProtocolConnector::acceptOnce()
     }
 }
 
-void GherkinProtocolConnector::runScenario(const Scenario* scenario)
+void GherkinProtocolConnector::runScenario(const ::Scenario* scenario)
 {
-    auto tags = readRagsToStringArray(scenario->tags);
-    m_engine->beginScenario(tags);
+    std::vector<std::string> tags = readRagsToStringArray(scenario->tags);
+    m_engine.beginScenario(tags);
 
-    m_engine->endScenario(tags);
+    const Steps* steps = scenario->steps;
+    for(int i = 0; i < steps->step_count; ++i)
+    {
+        Step step = steps->steps[i];
+
+        std::string narrowStepName = narrowString(step.text);
+        std::vector<StepMatch> stepMatches = m_engine.stepMatches(narrowStepName);
+
+        if(stepMatches.empty())
+        {
+
+        }
+        else if(stepMatches.size() > 1)
+        {
+
+        }
+    }
+
+    m_engine.endScenario(tags);
 }
 
 void GherkinProtocolConnector::runScenarioOutline(const ScenarioOutline* scenarioOutline)
 {
-    auto tags = readRagsToStringArray(scenarioOutline->tags);
-    m_engine->beginScenario(tags);
+    std::vector<std::string> tags = readRagsToStringArray(scenarioOutline->tags);
+    m_engine.beginScenario(tags);
 
-    m_engine->endScenario(tags);
+    m_engine.endScenario(tags);
 }
 
 std::vector<std::string> GherkinProtocolConnector::readRagsToStringArray(const Tags* tags)
@@ -64,4 +85,7 @@ std::vector<std::string> GherkinProtocolConnector::readRagsToStringArray(const T
         result.push_back(narrowString(tag_i.name));
     }
     return result;
+}
+
+}
 }

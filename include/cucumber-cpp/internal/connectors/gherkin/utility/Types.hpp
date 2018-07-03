@@ -4,6 +4,10 @@
 #include <memory>
 #include <string>
 
+#include <boost/shared_ptr.hpp>
+#include <boost/move/unique_ptr.hpp>
+#include <boost/make_shared.hpp>
+
 //Gherkin-c forward declarations
 class GherkinDocument;
 class FileReader;
@@ -12,6 +16,12 @@ class TokenMatcher;
 class Builder;
 class Parser;
 
-typedef std::shared_ptr<const GherkinDocument> GherkinDocumentPtr;
+namespace cucumber {
+namespace internal {
+
+typedef boost::shared_ptr<const GherkinDocument> GherkinDocumentPtr;
+
+}
+}
 
 #endif

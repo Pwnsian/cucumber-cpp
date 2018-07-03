@@ -15,7 +15,7 @@ set(CUKE_SOURCES
     connectors/wire/WireServer.cpp
     connectors/wire/WireProtocol.cpp
     connectors/wire/WireProtocolCommands.cpp
-    connectors/gherkin/GherkinConnector.cpp
+    connectors/gherkin/GherkinProtocol.cpp
     connectors/gherkin/parser/GherkinParser.cpp
     connectors/gherkin/utility/Utility.cpp
     connectors/gherkin/utility/Exceptions.cpp
@@ -84,6 +84,10 @@ foreach(TARGET
         PRIVATE
             $<TARGET_PROPERTY:json_spirit.header,INTERFACE_INCLUDE_DIRECTORIES>
     )
+    target_include_directories(${TARGET}
+        PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/3rdparty/
+    )
     target_link_libraries(${TARGET}
         PUBLIC
             Boost::boost
@@ -92,6 +96,7 @@ foreach(TARGET
             Boost::date_time
             Boost::filesystem
             Boost::thread
+            gherkin
             ${CUKE_EXTRA_PRIVATE_LIBRARIES}
     )
     # Don't export or import symbols for statically linked libraries

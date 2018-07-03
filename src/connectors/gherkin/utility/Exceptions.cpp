@@ -1,5 +1,8 @@
 #include <string>
-#include "exceptions.h"
+#include <cucumber-cpp/internal/connectors/gherkin/utility/Exceptions.hpp>
+
+namespace cucumber {
+namespace internal {
 
 StringException::StringException(const std::string& message)
     : m_Message(message)
@@ -7,7 +10,12 @@ StringException::StringException(const std::string& message)
 
 }
 
-const char* StringException::what() const noexcept
+StringException::~StringException() throw()
+{
+    
+}
+
+const char* StringException::what() const throw()
 {
     return m_Message.c_str();
 }
@@ -22,4 +30,7 @@ ParserErrorException::ParserErrorException(const std::string& errors)
     : StringException("Parser errors : " + errors)
 {
 
+}
+
+}
 }

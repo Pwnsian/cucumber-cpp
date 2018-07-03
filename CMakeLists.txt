@@ -254,6 +254,7 @@ endif()
 
 set(CUKE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_subdirectory(3rdparty/json_spirit)
+add_subdirectory(3rdparty/gherkin-c)
 add_subdirectory(src)
 
 #
