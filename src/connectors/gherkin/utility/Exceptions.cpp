@@ -1,8 +1,17 @@
 #include <string>
+#include <sstream>
+#include <gherkin-c/include/step.h>
+#include <gherkin-c/include/scenario.h>
 #include <cucumber-cpp/internal/connectors/gherkin/utility/Exceptions.hpp>
 
 namespace cucumber {
 namespace internal {
+
+StringException::StringException()
+    : m_Message("")
+{
+
+}
 
 StringException::StringException(const std::string& message)
     : m_Message(message)
@@ -30,6 +39,37 @@ ParserErrorException::ParserErrorException(const std::string& errors)
     : StringException("Parser errors : " + errors)
 {
 
+}
+
+NotImplementedException::NotImplementedException(const std::string& message)
+    : StringException(message + " are currently not implemented.")
+{
+
+}
+
+MissingStepDefinitionException::MissingStepDefinitionException(
+    const std::string& targetStepName, const std::string& snippetText)
+{
+
+}
+
+AmbiguousStepDefinitionException::AmbiguousStepDefinitionException(
+    const std::string& targetStepName, const std::vector<StepMatch>& foundMatches)
+{
+    std::stringstream ss;
+    ss  << "Ambiguous step definitions found for '" << targetStepName << '":' << std::endl;
+    for(std::vector<StepMatch>::const_iterator it = foundMatches.begin(); it != foundMatches.end(); ++it)
+    {
+        ss << " -> " << printStepDefinition(*it) << std::endl;
+    }
+    m_Message = ss.str();
+}
+
+std::string AmbiguousStepDefinitionException::printStepDefinition(const StepMatch& step)
+{
+    std::stringstream ss;
+    ss << step.source << " " << step.regexp;
+    return ss.str();
 }
 
 }

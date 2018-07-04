@@ -8,6 +8,7 @@
 // Gherkin-C forward declarations
 class Scenario;
 class ScenarioOutline;
+class Background;
 class Tags;
 
 namespace cucumber {
@@ -16,17 +17,19 @@ namespace internal {
 class GherkinProtocolConnector
 {
 public:
-    GherkinProtocolConnector(GherkinDocumentPtr document);
-    void acceptOnce();
+    GherkinProtocolConnector(CukeEngine* engine);
+    void acceptOnce(GherkinDocumentPtr document);
 
 private:
     void runScenario(const ::Scenario* scenario);
     void runScenarioOutline(const ::ScenarioOutline* scenarioOutline);
-    std::vector<std::string> readRagsToStringArray(const Tags* tags);
+    void runBackground(const Background* background);
+    void runSteps(const Steps* steps);
+    std::vector<std::string> getTagsToStringArray(const Tags* tags);
+    std::vector<std::string> getStringArguments(const Step* step);
 
 private:
-    GherkinDocumentPtr m_document;
-    CukeEngineImpl m_engine;
+    CukeEngine* m_engine;
 };
 
 }
