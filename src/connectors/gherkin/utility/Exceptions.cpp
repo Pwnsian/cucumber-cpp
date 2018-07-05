@@ -50,14 +50,18 @@ NotImplementedException::NotImplementedException(const std::string& message)
 MissingStepDefinitionException::MissingStepDefinitionException(
     const std::string& targetStepName, const std::string& snippetText)
 {
-
+    std::stringstream ss;
+    ss << "No matching step definition found for '" << targetStepName << "'. " << std::endl;
+    ss << "It can be implemented with the following: " << std::endl;
+    ss << snippetText << std::endl;
+    m_Message = ss.str();
 }
 
 AmbiguousStepDefinitionException::AmbiguousStepDefinitionException(
     const std::string& targetStepName, const std::vector<StepMatch>& foundMatches)
 {
     std::stringstream ss;
-    ss  << "Ambiguous step definitions found for '" << targetStepName << '":' << std::endl;
+    ss  << "Ambiguous step definitions found for '" << targetStepName << "':" << std::endl;
     for(std::vector<StepMatch>::const_iterator it = foundMatches.begin(); it != foundMatches.end(); ++it)
     {
         ss << " -> " << printStepDefinition(*it) << std::endl;

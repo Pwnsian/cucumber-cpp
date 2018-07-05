@@ -1,6 +1,7 @@
 #include <string>
 #include <string>
 #include <sstream>
+#include <iostream>
 #include <gherkin-c/include/string_token_scanner.h>
 #include <gherkin-c/include/file_reader.h>
 #include <gherkin-c/include/token_matcher.h>
@@ -13,35 +14,42 @@
 namespace cucumber {
 namespace internal {
 
-GherkinParser::GherkinParser(const std::string& filename)
-    : m_fileReader(NULL)
+GherkinParser::GherkinParser(const std::wstring& featureContents)
+    : m_featureContents(featureContents)
     , m_tokenScanner(NULL)
     , m_tokenMatcher(NULL)
     , m_bulder(NULL)
     , m_parser(NULL)
 {
-    m_fileReader = FileReader_new(filename.c_str());
-
-    // Gherkin-C's strange method of handling file not found. Handle it.
-    // https://github.com/cucumber/gherkin-c/commit/db6ae6d2b99e68df47d774aac35f35109dc807a1
-    const wchar_t* fileContents = FileReader_read(m_fileReader);
-    if(wcscmp(fileContents, L" ") == 0)
-    {
-        throw FileNotFoundException(filename);
-    }
-
-    m_tokenScanner = StringTokenScanner_new(fileContents);
-    m_tokenMatcher = TokenMatcher_new(L"en.US");
+    m_tokenScanner = StringTokenScanner_new(m_featureContents.c_str());
+    m_tokenMatcher = TokenMatcher_new(L"en");
     m_bulder = AstBuilder_new();
     m_parser = Parser_new(m_bulder);
 }
 
 GherkinParser::~GherkinParser()
 {
-    FileReader_delete(m_fileReader);
     TokenScanner_delete(m_tokenScanner);
     TokenMatcher_delete(m_tokenMatcher);
-    Parser_delete(m_parser);    
+    AstBuilder_delete(m_bulder);
+    Parser_delete(m_parser);
+}
+
+std::wstring GherkinParser::loadFeatureFile(const std::string& filename)
+{
+    FileReader* fileReader = FileReader_new(filename.c_str());
+
+    // Gherkin-C's strange method of handling file not found. Handle it.
+    // https://github.com/cucumber/gherkin-c/commit/db6ae6d2b99e68df47d774aac35f35109dc807a1
+    std::wstring fileContents = FileReader_read(fileReader);
+    if(fileContents == L" ")
+    {
+        FileReader_delete(fileReader);
+        throw FileNotFoundException(filename);
+    }
+
+    FileReader_delete(fileReader);
+    return fileContents;
 }
 
 std::string GherkinParser::ReadParserErrors(Parser* parser)
@@ -64,11 +72,11 @@ std::string GherkinParser::ReadParserErrors(Parser* parser)
 
 GherkinDocumentPtr GherkinParser::parse()
 {
-    Parser_parse(m_parser, m_tokenMatcher, m_tokenScanner);
+    int result = Parser_parse(m_parser, m_tokenMatcher, m_tokenScanner);
 
-    std::string errors = ReadParserErrors(m_parser);
-    if(!errors.empty())
+    if(result != 0)
     {
+        std::string errors = ReadParserErrors(m_parser);
         throw ParserErrorException(errors);
     }
 

@@ -35,6 +35,7 @@ if(TARGET GMock::Main)
     cuke_add_test(unit/StepManagerTest)
     cuke_add_test(unit/TableTest)
     cuke_add_test(unit/TagTest)
+    cuke_add_test(unit/GherkinParserTest)
 endif()
 
 if(TARGET GTest::Main)

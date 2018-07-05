@@ -15,6 +15,8 @@ class TokenScanner;
 class TokenMatcher;
 class Builder;
 class Parser;
+class Step;
+class Steps;
 
 namespace cucumber {
 namespace internal {

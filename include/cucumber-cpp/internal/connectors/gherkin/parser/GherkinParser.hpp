@@ -9,15 +9,17 @@ namespace internal {
 class GherkinParser
 {
 public:
-    GherkinParser(const std::string& filename);
+    GherkinParser(const std::wstring& featureContents);
     ~GherkinParser();
+
     GherkinDocumentPtr parse();
+    static std::wstring loadFeatureFile(const std::string& filename);
 
 private:
     std::string ReadParserErrors(Parser* parser);
 
 private:
-    FileReader* m_fileReader;
+    std::wstring m_featureContents;
     TokenScanner* m_tokenScanner;
     TokenMatcher* m_tokenMatcher;
     Builder* m_bulder;
