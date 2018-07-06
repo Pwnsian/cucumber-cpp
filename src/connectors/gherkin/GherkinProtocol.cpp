@@ -49,7 +49,7 @@ void GherkinProtocolConnector::acceptOnce(GherkinDocumentPtr document)
 
 void GherkinProtocolConnector::runScenario(const ::Scenario* scenario)
 {
-    std::vector<std::string> tags = getTagsToStringArray(scenario->tags);
+    std::vector<std::string> tags = GherkinProtocolUtils::getTagsToStringArray(scenario->tags);
     m_engine->beginScenario(tags);
     try
     {
@@ -65,7 +65,7 @@ void GherkinProtocolConnector::runScenario(const ::Scenario* scenario)
 
 void GherkinProtocolConnector::runScenarioOutline(const ScenarioOutline* scenarioOutline)
 {
-    std::vector<std::string> tags = getTagsToStringArray(scenarioOutline->tags);
+    std::vector<std::string> tags = GherkinProtocolUtils::getTagsToStringArray(scenarioOutline->tags);
     m_engine->beginScenario(tags);
     try
     {
@@ -108,14 +108,14 @@ void GherkinProtocolConnector::runSteps(const Steps* steps)
         else
         {
             const StepMatch& matchedStep = *stepMatches.begin();
-            std::vector<std::string> arguments = getStringArguments(&step);
+            std::vector<std::string> arguments = GherkinProtocolUtils::getStringArguments(&step);
             CukeEngine::invoke_table_type emptyTableArgs;
             m_engine->invokeStep(matchedStep.id, arguments, emptyTableArgs);
         }
     }
 }
 
-std::vector<std::string> GherkinProtocolConnector::getTagsToStringArray(const Tags* tags)
+std::vector<std::string> GherkinProtocolUtils::getTagsToStringArray(const Tags* tags)
 {
     std::vector<std::string> result;
     for(int i = 0; i < tags->tag_count; ++i)
@@ -125,7 +125,7 @@ std::vector<std::string> GherkinProtocolConnector::getTagsToStringArray(const Ta
     return result;
 }
 
-std::vector<std::string> GherkinProtocolConnector::getStringArguments(const Step* step)
+std::vector<std::string> GherkinProtocolUtils::getStringArguments(const Step* step)
 {
     std::vector<std::string> results;
     const StepArgument* argument = step->argument;
@@ -142,6 +142,56 @@ std::vector<std::string> GherkinProtocolConnector::getStringArguments(const Step
         }
     }
     return results;
+}
+
+GherkinProtocolUtils::examples_container 
+GherkinProtocolUtils::getExamples(const ::ScenarioOutline* scenarioOutline)
+{
+    GherkinProtocolUtils::examples_container result;
+
+    if(scenarioOutline->examples)
+    {
+        for(int i = 0; i < scenarioOutline->examples->example_count; ++i)
+        {
+            const ExampleTable* examples = &scenarioOutline->examples->example_table[i];
+            std::vector<std::string> headers = getTableRowValues(examples->table_header);
+
+            const TableRows* tableBody = examples->table_body;
+            for(int j = 0; j < tableBody->row_count; ++j)
+            {
+                const TableRow* bodyRow = &tableBody->table_rows[j];
+                std::vector<std::string> examplesCells = getTableRowValues(bodyRow);
+
+                for(unsigned k = 0; k < examplesCells.size(); ++k)
+                {
+                    result[headers[k]].push_back(examplesCells[k]);
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+std::vector<std::string> GherkinProtocolUtils::getTableRowValues(const TableRow* tableRow)
+{
+    std::vector<std::string> result;
+
+    for(int i = 0; i < tableRow->table_cells->cell_count; ++i)
+    {
+        const TableCell* cell = &tableRow->table_cells->table_cells[i];
+        if(cell->value)
+        {
+            result.push_back(narrowString(cell->value));
+        }
+    }
+
+    return result;
+}
+
+void GherkinProtocolUtils::validateScenarioOutlineExamples(const examples_container&)
+{
+
 }
 
 }
