@@ -53,12 +53,12 @@ void GherkinProtocolConnector::runScenario(const ::Scenario* scenario)
     m_engine->beginScenario(tags);
     try
     {
-
+        runSteps(scenario->steps);
     }
     catch(std::exception& ex)
     {
         m_engine->endScenario(tags);
-        throw ex;
+        throw;
     }
     m_engine->endScenario(tags);
 }
@@ -69,12 +69,12 @@ void GherkinProtocolConnector::runScenarioOutline(const ScenarioOutline* scenari
     m_engine->beginScenario(tags);
     try
     {
-
+        
     }
     catch(std::exception& ex)
     {
         m_engine->endScenario(tags);
-        throw ex;
+        throw;
     }
     m_engine->endScenario(tags);
 }
@@ -125,7 +125,7 @@ std::vector<std::string> GherkinProtocolConnector::getTagsToStringArray(const Ta
     return result;
 }
 
-std::vector<std::string> getStringArguments(const Step* step)
+std::vector<std::string> GherkinProtocolConnector::getStringArguments(const Step* step)
 {
     std::vector<std::string> results;
     const StepArgument* argument = step->argument;
