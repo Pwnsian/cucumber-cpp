@@ -112,9 +112,21 @@ TEST_F(GherkinProtocolUtilsTest, getStringArgumentsReturnsEmptyListWithNoArgumen
 TEST_F(GherkinProtocolUtilsTest, getExamplesReturnsCorrectStructure)
 {
     const ::ScenarioOutline* outline = getNthScenarioOutlineInFeature(scenario_outlines->feature, 0);
-    GherkinProtocolUtils::examples_container examples = GherkinProtocolUtils::getExamples(outline);
+    GherkinProtocolUtils::examples_map examples = GherkinProtocolUtils::getExamples(outline);
 
     EXPECT_EQ(2, examples.size());
     EXPECT_EQ(boost::assign::list_of("en")("fr"), examples.at("type"));
     EXPECT_EQ(boost::assign::list_of("Hello")("Bonjour"), examples.at("content"));
+}
+
+TEST_F(GherkinProtocolUtilsTest, replaceStepTextWithExampleReplacesTextCorrctly)
+{
+    const std::string initialStepText = "I add the <thing> to the <other>";
+
+    GherkinProtocolUtils::examples_map examples;
+    examples["thing"].push_back("chihaya");
+    examples["other"].push_back("shirai");
+
+    std::string finalStepText = GherkinProtocolUtils::replaceStepTextWithExample(initialStepText, examples, 0);
+    EXPECT_EQ(finalStepText, "I add the chihaya to the shirai");
 }

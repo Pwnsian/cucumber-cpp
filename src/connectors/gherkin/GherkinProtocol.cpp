@@ -10,6 +10,7 @@
 #include <gherkin-c/include/pickle_string.h>
 #include <gherkin-c/include/data_table.h>
 #include <gherkin-c/include/doc_string.h>
+#include <iostream>
 
 namespace cucumber {
 namespace internal {
@@ -69,7 +70,7 @@ void GherkinProtocolConnector::runScenarioOutline(const ScenarioOutline* scenari
     m_engine->beginScenario(tags);
     try
     {
-        
+        runExamples(scenarioOutline->steps, GherkinProtocolUtils::getExamples(scenarioOutline));
     }
     catch(std::exception&)
     {
@@ -84,34 +85,59 @@ void GherkinProtocolConnector::runBackground(const Background* background)
     runSteps(background->steps);
 }
 
+void GherkinProtocolConnector::runExamples(
+    const Steps* steps,
+    const GherkinProtocolUtils::examples_map& examples)
+{
+    GherkinProtocolUtils::validateScenarioOutlineExamples(examples);
+
+    size_t numberOfExamples = examples.begin()->second.size();
+    for(size_t example = 0; example < numberOfExamples; ++example)
+    {
+        for(int step = 0; step < steps->step_count; ++ step)
+        {
+            const Step* thisStep = &steps->steps[step];
+            std::string initialStepText = narrowString(thisStep->text);
+            std::string finalStepText = GherkinProtocolUtils::replaceStepTextWithExample(
+                initialStepText, examples, example);
+            runStep(thisStep, finalStepText);
+        }
+    }
+}
+
 void GherkinProtocolConnector::runSteps(const Steps* steps)
 {
     for(int i = 0; i < steps->step_count; ++i)
     {
-        Step step = steps->steps[i];
-        std::string narrowStepName = narrowString(step.text);
-        std::vector<StepMatch> stepMatches = m_engine->stepMatches(narrowStepName);
+        runStep(&steps->steps[i]);
+    }
+}
 
-        if(stepMatches.empty())
-        {
-            std::string stepSnippet = m_engine->snippetText(
-                narrowString(step.keyword), 
-                narrowString(step.text),
-                ""
-            );
-            throw MissingStepDefinitionException(narrowString(step.text), stepSnippet);
-        }
-        else if(stepMatches.size() > 1)
-        {
-            throw AmbiguousStepDefinitionException(narrowString(step.text), stepMatches);
-        }
-        else
-        {
-            const StepMatch& matchedStep = *stepMatches.begin();
-            std::vector<std::string> arguments = GherkinProtocolUtils::getStringArguments(&step);
-            CukeEngine::invoke_table_type emptyTableArgs;
-            m_engine->invokeStep(matchedStep.id, arguments, emptyTableArgs);
-        }
+void GherkinProtocolConnector::runStep(const Step* step)
+{
+    std::string narrowStepText = narrowString(step->text);
+    runStep(step, narrowStepText);
+}
+
+void GherkinProtocolConnector::runStep(const Step* step, const std::string& fullStepText)
+{
+    std::vector<StepMatch> stepMatches = m_engine->stepMatches(fullStepText);
+
+    if(stepMatches.empty())
+    {
+        std::string stepSnippet = m_engine->snippetText(narrowString(step->keyword), fullStepText, "");
+        throw MissingStepDefinitionException(fullStepText, stepSnippet);
+    }
+    else if(stepMatches.size() > 1)
+    {
+        throw AmbiguousStepDefinitionException(fullStepText, stepMatches);
+    }
+    else
+    {
+        const StepMatch& matchedStep = *stepMatches.begin();
+        std::vector<std::string> arguments = GherkinProtocolUtils::getStringArguments(step);
+        CukeEngine::invoke_table_type emptyTableArgs;
+        m_engine->invokeStep(matchedStep.id, arguments, emptyTableArgs);
     }
 }
 
@@ -144,28 +170,25 @@ std::vector<std::string> GherkinProtocolUtils::getStringArguments(const Step* st
     return results;
 }
 
-GherkinProtocolUtils::examples_container GherkinProtocolUtils::getExamples(
+GherkinProtocolUtils::examples_map GherkinProtocolUtils::getExamples(
 	const ::ScenarioOutline* scenarioOutline)
 {
-    GherkinProtocolUtils::examples_container result;
+    GherkinProtocolUtils::examples_map result;
 
-    if(scenarioOutline->examples)
+    for(int i = 0; i < scenarioOutline->examples->example_count; ++i)
     {
-        for(int i = 0; i < scenarioOutline->examples->example_count; ++i)
+        const ExampleTable* examples = &scenarioOutline->examples->example_table[i];
+        std::vector<std::string> headers = getTableRowValues(examples->table_header);
+
+        const TableRows* tableBody = examples->table_body;
+        for(int j = 0; j < tableBody->row_count; ++j)
         {
-            const ExampleTable* examples = &scenarioOutline->examples->example_table[i];
-            std::vector<std::string> headers = getTableRowValues(examples->table_header);
+            const TableRow* bodyRow = &tableBody->table_rows[j];
+            std::vector<std::string> examplesCells = getTableRowValues(bodyRow);
 
-            const TableRows* tableBody = examples->table_body;
-            for(int j = 0; j < tableBody->row_count; ++j)
+            for(unsigned k = 0; k < examplesCells.size(); ++k)
             {
-                const TableRow* bodyRow = &tableBody->table_rows[j];
-                std::vector<std::string> examplesCells = getTableRowValues(bodyRow);
-
-                for(unsigned k = 0; k < examplesCells.size(); ++k)
-                {
-                    result[headers[k]].push_back(examplesCells[k]);
-                }
+                result[headers[k]].push_back(examplesCells[k]);
             }
         }
     }
@@ -189,9 +212,33 @@ std::vector<std::string> GherkinProtocolUtils::getTableRowValues(const TableRow*
     return result;
 }
 
-void GherkinProtocolUtils::validateScenarioOutlineExamples(const examples_container&)
-{
 
+std::string GherkinProtocolUtils::replaceStepTextWithExample(
+    const std::string& step_text,
+    const GherkinProtocolUtils::examples_map& examples,
+    int exampleNumber)
+{
+    typedef GherkinProtocolUtils::examples_map::const_iterator const_iterator;
+
+    std::string exampleStepText = step_text;
+
+    for(const_iterator it = examples.begin(); it != examples.end(); ++it)
+    {
+        std::string searchText = "<" + it->first + ">";
+        std::string replacementText = it->second[exampleNumber];
+        replaceAll(exampleStepText, searchText, replacementText);
+    }
+
+    return exampleStepText;
+}
+
+
+void GherkinProtocolUtils::validateScenarioOutlineExamples(const examples_map& examples)
+{
+    if(examples.empty())
+    {
+        throw StringException("Scenario Outline missing examples in feature");
+    }
 }
 
 }

@@ -80,6 +80,9 @@ GherkinDocumentPtr GherkinParser::parse()
         throw ParserErrorException(errors);
     }
 
+    // TODO: Check other errors not reported by parser:
+    // * If a Scenario Outline is missing examples
+
     return GherkinDocumentPtr(AstBuilder_get_result(m_bulder));
 }
 
