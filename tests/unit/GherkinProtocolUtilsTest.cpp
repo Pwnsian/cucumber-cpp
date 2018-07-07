@@ -12,18 +12,43 @@
 using namespace cucumber::internal;
 using namespace testing;
 
+namespace
+{
+	const std::wstring tags_feature_source =
+		L"@a\n"
+		L"Feature:\n"
+		L"@b @c\n"
+		L"Scenario Outline:\n"
+		L"Given <x>\n\n"
+		L"Examples:\n"
+		L"	| x |\n"
+		L"	| y |\n";
+
+	const std::wstring scenario_outlines_source =
+		L"Feature: Scenario Outline with a docstring\n\n"
+		L"Scenario Outline: Greetings come in many forms\n"
+		L"    Given this file:\n"
+		L"    \"\"\"<type>\n"
+		L"    Greeting: <content>\n"
+		L"    \"\"\"\n\n"
+		L"Examples:\n"
+		L"| type | content |\n"
+		L"| en | Hello |\n"
+		L"| fr | Bonjour |";
+}
+
 class GherkinProtocolUtilsTest : public Test
 {
 protected:
     virtual void SetUp()
     {
-        tags_feature = parseDocument("../../3rdparty/gherkin-c/testdata/good/scenario_outlines_with_tags.feature");
-        scenario_outlines = parseDocument("../../3rdparty/gherkin-c/testdata/good/scenario_outline_with_docstring.feature");
+        tags_feature = parseDocument(tags_feature_source);
+        scenario_outlines = parseDocument(scenario_outlines_source);
     }
 
-    GherkinDocumentPtr parseDocument(const std::string& filename)
+    GherkinDocumentPtr parseDocument(const std::wstring& contents)
     {
-        GherkinParser parser(GherkinParser::loadFeatureFile(filename));
+        GherkinParser parser(contents);
         return parser.parse();
     }
 
@@ -72,7 +97,7 @@ TEST_F(GherkinProtocolUtilsTest, getStringArgumentsRetrunsDocStringArguments)
     const ::ScenarioOutline* outline = getNthScenarioOutlineInFeature(scenario_outlines->feature, 0);
     const Step* step = &outline->steps->steps[0];
     std::vector<std::string> actualArguments = GherkinProtocolUtils::getStringArguments(step);
-    std::vector<std::string> expectedArguments = boost::assign::list_of("Greeting:<content>");
+    std::vector<std::string> expectedArguments = boost::assign::list_of("Greeting: <content>");
     EXPECT_EQ(expectedArguments, actualArguments);
 }
 

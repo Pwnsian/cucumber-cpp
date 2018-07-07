@@ -9,18 +9,39 @@
 using namespace cucumber::internal;
 using namespace testing;
 
+namespace
+{
+	const std::wstring minimal_feature_source =
+		L"Feature: Minimal\n\n"
+		L"  Scenario: minimalistic\n"
+		L"    Given the minimalism";
+
+	const std::wstring tags_feature_source =
+		L"@feature_tag1 @feature_tag2\n"
+		L"  @feature_tag3\n"
+		L"Feature: Minimal Scenario Outline\n\n"
+		L"@scenario_tag1 @scenario_tag2\n"
+		L"   @scenario_tag3\n\n"
+		L"Scenario: minimalistic\n"
+		L"    Given the minimalism\n"
+		L"@so_tag1  @so_tag2\n"
+		L"  @so_tag3\n"
+		L"Scenario Outline: minimalistic outline\n"
+		L"    Given the <what>";
+}
+
 class GherkinProtocolTest : public Test
 {
 protected:
     virtual void SetUp()
     {
-        minimal_feature = parseDocument("../../3rdparty/gherkin-c/testdata/good/minimal.feature");
-        tags_feature = parseDocument("../../3rdparty/gherkin-c/testdata/good/tags.feature");
+        minimal_feature = parseDocument(minimal_feature_source);
+        tags_feature = parseDocument(tags_feature_source);
     }
 
-    GherkinDocumentPtr parseDocument(const std::string& filename)
+    GherkinDocumentPtr parseDocument(const std::wstring& contents)
     {
-        GherkinParser parser(GherkinParser::loadFeatureFile(filename));
+        GherkinParser parser(contents);
         return parser.parse();
     }
 
