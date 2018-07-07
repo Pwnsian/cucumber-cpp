@@ -6,11 +6,11 @@
 #include <cucumber-cpp/internal/CukeEngineImpl.hpp>
 
 // Gherkin-C forward declarations
-class Scenario;
-class ScenarioOutline;
-class Background;
-class Tags;
-class TableRow;
+struct Scenario;
+struct ScenarioOutline;
+struct Background;
+struct Tags;
+struct TableRow;
 
 namespace cucumber {
 namespace internal {

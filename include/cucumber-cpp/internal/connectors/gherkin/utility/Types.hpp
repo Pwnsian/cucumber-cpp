@@ -9,14 +9,14 @@
 #include <boost/make_shared.hpp>
 
 //Gherkin-c forward declarations
-class GherkinDocument;
-class FileReader;
-class TokenScanner;
-class TokenMatcher;
-class Builder;
-class Parser;
-class Step;
-class Steps;
+struct GherkinDocument;
+struct FileReader;
+struct TokenScanner;
+struct TokenMatcher;
+struct Builder;
+struct Parser;
+struct Step;
+struct Steps;
 
 namespace cucumber {
 namespace internal {

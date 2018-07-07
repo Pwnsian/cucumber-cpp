@@ -6,8 +6,6 @@
 #include <exception>
 #include <cucumber-cpp/internal/CukeEngine.hpp>
 
-class Step;
-
 namespace cucumber {
 namespace internal {
 
