@@ -2,6 +2,9 @@
 #include <cucumber-cpp/internal/CukeExport.hpp>
 #include <cucumber-cpp/internal/connectors/wire/WireServer.hpp>
 #include <cucumber-cpp/internal/connectors/wire/WireProtocol.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/GherkinProtocol.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/parser/GherkinParser.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/output/GherkinProductionPrinter.hpp>
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -38,29 +41,8 @@ void acceptWireProtocol(const std::string& host, int port, const std::string& un
     server->acceptOnce();
 }
 
-}
-
-int CUCUMBER_CPP_EXPORT main(int argc, char** argv) {
-    using boost::program_options::value;
-    boost::program_options::options_description optionDescription("Allowed options");
-    optionDescription.add_options()
-        ("help,h", "help for cucumber-cpp")
-        ("verbose,v", "verbose output")
-        ("listen,l", value<std::string>(), "listening address of wireserver")
-        ("port,p", value<int>(), "listening port of wireserver, use '0' (zero) to select an ephemeral port")
-#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
-        ("unix,u", value<std::string>(), "listening unix socket of wireserver (disables listening on port)")
-#endif
-        ;
-    boost::program_options::variables_map optionVariableMap;
-    boost::program_options::store(boost::program_options::parse_command_line(argc, argv, optionDescription), optionVariableMap);
-    boost::program_options::notify(optionVariableMap);
-
-    if (optionVariableMap.count("help")) {
-        std::cerr << optionDescription << std::endl;
-        exit(1);
-    }
-
+int wireConnectorMain(const boost::program_options::variables_map& optionVariableMap)
+{
     std::string listenHost("127.0.0.1");
     if (optionVariableMap.count("listen")) {
         listenHost = optionVariableMap["listen"].as<std::string>();
@@ -89,5 +71,64 @@ int CUCUMBER_CPP_EXPORT main(int argc, char** argv) {
         std::cerr << e.what() << std::endl;
         exit(1);
     }
+
+    return 0;
+}
+
+}
+
+namespace
+{
+
+void gherkinConnectorMain(const boost::program_options::variables_map& optionVariableMap)
+{
+    using namespace ::cucumber::internal;
+    CukeEngineImpl engine;
+    GherkinProtocolConnector connector(&engine);
+
+    try {
+        std::string fileName = optionVariableMap["feature"].as<std::string>();
+        std::wstring fileContents = GherkinParser::loadFeatureFile(fileName);
+        GherkinParser parser(fileContents);
+        GherkinDocumentPtr document = parser.parse();
+        connector.setListener(new GherkinProductionPrinter(std::cout));
+        connector.acceptOnce(document);
+    } catch (std::exception &e) {
+        std::cerr << e.what() << std::endl;
+        exit(1);
+    }
+}
+
+}
+
+int CUCUMBER_CPP_EXPORT main(int argc, char** argv) {
+    using boost::program_options::value;
+    boost::program_options::options_description optionDescription("Allowed options");
+    optionDescription.add_options()
+        ("help,h", "help for cucumber-cpp")
+        ("verbose,v", "verbose output")
+        ("listen,l", value<std::string>(), "listening address of wireserver")
+        ("port,p", value<int>(), "listening port of wireserver, use '0' (zero) to select an ephemeral port")
+#if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
+        ("unix,u", value<std::string>(), "listening unix socket of wireserver (disables listening on port)")
+#endif
+        ("feature,i", value<std::string>(), "Use the Gherkin Feature Parser Connector instead of a Wire server with a given feature file."
+           " Run the feature file aginst the registered steps.")
+        ;
+    boost::program_options::variables_map optionVariableMap;
+    boost::program_options::store(boost::program_options::parse_command_line(argc, argv, optionDescription), optionVariableMap);
+    boost::program_options::notify(optionVariableMap);
+
+    if (optionVariableMap.count("help")) {
+        std::cerr << optionDescription << std::endl;
+        exit(1);
+    }
+
+    if (optionVariableMap.count("feature")) {
+        gherkinConnectorMain(optionVariableMap);
+    } else {
+        wireConnectorMain(optionVariableMap);
+    }
+
     return 0;
 }
