@@ -69,7 +69,7 @@ int wireConnectorMain(const boost::program_options::variables_map& optionVariabl
         acceptWireProtocol(listenHost, port, unixPath, verbose);
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
-        exit(1);
+        return 1;
     }
 
     return 0;
@@ -80,7 +80,7 @@ int wireConnectorMain(const boost::program_options::variables_map& optionVariabl
 namespace
 {
 
-void gherkinConnectorMain(const boost::program_options::variables_map& optionVariableMap)
+int gherkinConnectorMain(const boost::program_options::variables_map& optionVariableMap)
 {
     using namespace ::cucumber::internal;
     CukeEngineImpl engine;
@@ -91,12 +91,18 @@ void gherkinConnectorMain(const boost::program_options::variables_map& optionVar
         std::wstring fileContents = GherkinParser::loadFeatureFile(fileName);
         GherkinParser parser(fileContents);
         GherkinDocumentPtr document = parser.parse();
-        connector.setListener(new GherkinProductionPrinter(std::cout));
+        GherkinProductionPrinter* printListener = new GherkinProductionPrinter(std::cout);
+        connector.setListener(printListener);
         connector.acceptOnce(document);
+        if (printListener->hasTestFailures()) {
+            return 1;
+        }
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
-        exit(1);
+        return 1;
     }
+
+    return 0;
 }
 
 }
@@ -125,9 +131,9 @@ int CUCUMBER_CPP_EXPORT main(int argc, char** argv) {
     }
 
     if (optionVariableMap.count("feature")) {
-        gherkinConnectorMain(optionVariableMap);
+        return gherkinConnectorMain(optionVariableMap);
     } else {
-        wireConnectorMain(optionVariableMap);
+        return wireConnectorMain(optionVariableMap);
     }
 
     return 0;
