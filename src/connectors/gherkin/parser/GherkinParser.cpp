@@ -9,6 +9,7 @@
 #include <gherkin-c/include/parser.h>
 #include <gherkin-c/include/error.h>
 #include <cucumber-cpp/internal/connectors/gherkin/utility/Exceptions.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/utility/Utility.hpp>
 #include <cucumber-cpp/internal/connectors/gherkin/parser/GherkinParser.hpp>
 
 namespace cucumber {
@@ -21,6 +22,9 @@ GherkinParser::GherkinParser(const std::wstring& featureContents)
     , m_bulder(NULL)
     , m_parser(NULL)
 {
+    // Workaround for Gherkin-C not properly parsing files indented with tabs.
+    replaceAll<wchar_t>(m_featureContents, L"\t", L" ");
+
     m_tokenScanner = StringTokenScanner_new(m_featureContents.c_str());
     m_tokenMatcher = TokenMatcher_new(L"en");
     m_bulder = AstBuilder_new();
