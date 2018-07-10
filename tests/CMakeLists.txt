@@ -38,6 +38,7 @@ if(TARGET GMock::Main)
     cuke_add_test(unit/TagTest)
     cuke_add_test(unit/GherkinParserTest)
     cuke_add_test(unit/GherkinProtocolUtilsTest)
+    cuke_add_test(unit/GherkinProductionPrinterTest)
 endif()
 
 if(TARGET GTest::Main)

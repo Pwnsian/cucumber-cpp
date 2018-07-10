@@ -1,9 +1,10 @@
-#ifndef GHERKIN_ENGINE_H
-#define GHERKIN_ENGINE_H
+#ifndef GHERKIN_PROTOCOL_CONNECTOR_H
+#define GHERKIN_PROTOCOL_CONNECTOR_H
 
 #include <vector>
-#include <cucumber-cpp/internal/connectors/gherkin/utility/Types.hpp>
 #include <cucumber-cpp/internal/CukeEngineImpl.hpp>
+#include "utility/Types.hpp"
+#include "output/IGherkinTestEventListener.hpp"
 
 // Gherkin-C forward declarations
 struct Scenario;
@@ -34,6 +35,7 @@ class GherkinProtocolConnector
 public:
     GherkinProtocolConnector(CukeEngine* engine);
     void acceptOnce(GherkinDocumentPtr document);
+    void setListener(IGherkinTestEventListener* listener);
 
 private:
     void runScenario(const ::Scenario* scenario);
@@ -46,6 +48,7 @@ private:
 
 private:
     CukeEngine* m_engine;
+    boost::movelib::unique_ptr<IGherkinTestEventListener> m_listener;
 };
 
 }

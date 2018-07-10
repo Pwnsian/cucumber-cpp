@@ -1,8 +1,10 @@
 #include <cucumber-cpp/internal/connectors/gherkin/GherkinProtocol.hpp>
+#include <cucumber-cpp/internal/connectors/gherkin/output/IGherkinTestEventListener.hpp>
 #include <cucumber-cpp/internal/connectors/gherkin/parser/GherkinParser.hpp>
 #include <cucumber-cpp/internal/connectors/gherkin/utility/Exceptions.hpp>
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <boost/assign/list_of.hpp>
 #include "../utils/MockCukeEngine.hpp"
 
@@ -77,6 +79,19 @@ protected:
     GherkinDocumentPtr tags_feature;
     GherkinDocumentPtr missing_outline_examples;
     GherkinDocumentPtr scenario_outlines;
+};
+
+class MockGherkinTestEventListener : public GherkinEmptyTestEventListener
+{
+public:
+    MOCK_METHOD1(onFeatureStarted, void(const std::string&));
+    MOCK_METHOD1(onFeatureEnd, void(const std::string&));
+    MOCK_METHOD1(onScenarioStarted, void(const std::string&));
+    MOCK_METHOD1(onScenarioEnd, void(const std::string&));
+    MOCK_METHOD1(onTestStarted, void(const std::string&));
+    MOCK_METHOD1(onTestPassed, void(const std::string&));
+    MOCK_METHOD2(onTestPending, void(const std::string&, const std::string&));
+    MOCK_METHOD3(onTestFailed, void(const std::string&, const std::string&, const std::string&));
 };
 
 TEST_F(GherkinProtocolTest, runningMinimalFeatureMakesAllCorrectEngineCalls)
@@ -207,6 +222,56 @@ TEST_F(GherkinProtocolTest, runningScenarioOutlinesMakesAllCorrectEngineCalls)
     EXPECT_CALL(engine, endScenario(scenarioTags)).Times(2);
 
     connector.acceptOnce(scenario_outlines);
+}
+
+TEST_F(GherkinProtocolTest, connectingEngineAndListnerCompletesWithoutError)
+{
+    NiceMock<MockCukeEngine> engine;
+    NiceMock<MockGherkinTestEventListener>* listener = new NiceMock<MockGherkinTestEventListener>();
+
+    GherkinProtocolConnector connector(&engine);
+    EXPECT_NO_THROW(connector.setListener(listener));
+}
+
+TEST_F(GherkinProtocolTest, runningMinimalScenarioMakesAllCorrectListenerCalls)
+{
+    NiceMock<MockCukeEngine> engine;
+    StrictMock<MockGherkinTestEventListener>* listener = new StrictMock<MockGherkinTestEventListener>();
+
+    GherkinProtocolConnector connector(&engine);
+    connector.setListener(listener);
+
+    ON_CALL(engine, stepMatches(_))
+        .WillByDefault(Return(std::vector<StepMatch>(1)));
+
+    EXPECT_CALL(*listener, onFeatureStarted("Minimal")).Times(1);
+    EXPECT_CALL(*listener, onFeatureEnd("Minimal")).Times(1);
+    EXPECT_CALL(*listener, onScenarioStarted("minimalistic")).Times(1);
+    EXPECT_CALL(*listener, onScenarioEnd("minimalistic")).Times(1);
+    EXPECT_CALL(*listener, onTestStarted("the minimalism")).Times(1);
+    EXPECT_CALL(*listener, onTestPassed("the minimalism")).Times(1);
+
+    connector.acceptOnce(minimal_feature);
+}
+
+TEST_F(GherkinProtocolTest, runningMinimalScenarioCallsScenarioCallsInCorrecOrder)
+{
+    ::testing::Sequence testSequnece;
+
+    NiceMock<MockCukeEngine> engine;
+    NiceMock<MockGherkinTestEventListener>* listener = new NiceMock<MockGherkinTestEventListener>();
+
+    GherkinProtocolConnector connector(&engine);
+    connector.setListener(listener);
+
+    ON_CALL(engine, stepMatches(_))
+        .WillByDefault(Return(std::vector<StepMatch>(1)));
+
+    EXPECT_CALL(*listener, onScenarioStarted("minimalistic")).InSequence(testSequnece);
+    EXPECT_CALL(*listener, onTestStarted("the minimalism")).InSequence(testSequnece);
+    EXPECT_CALL(*listener, onScenarioEnd("minimalistic")).InSequence(testSequnece);
+
+    connector.acceptOnce(minimal_feature);
 }
 
 

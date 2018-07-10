@@ -17,6 +17,7 @@ set(CUKE_SOURCES
     connectors/wire/WireProtocolCommands.cpp
     connectors/gherkin/GherkinProtocol.cpp
     connectors/gherkin/parser/GherkinParser.cpp
+    connectors/gherkin/output/GherkinProductionPrinter.cpp
     connectors/gherkin/utility/Utility.cpp
     connectors/gherkin/utility/Exceptions.cpp
     )

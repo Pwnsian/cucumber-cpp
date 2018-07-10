@@ -17,14 +17,22 @@ namespace internal {
 
 GherkinProtocolConnector::GherkinProtocolConnector(CukeEngine* engine)
     : m_engine(engine)
+    , m_listener(new GherkinEmptyTestEventListener())
 {
     
+}
+
+void GherkinProtocolConnector::setListener(IGherkinTestEventListener* listener)
+{
+    m_listener.reset(listener);
 }
 
 void GherkinProtocolConnector::acceptOnce(GherkinDocumentPtr document)
 {
     const Feature* documentFeature = document->feature;
     const ScenarioDefinitions* scenarios = documentFeature->scenario_definitions;
+
+    m_listener->onFeatureStarted(narrowString(documentFeature->name));
 
     for(int i = 0; i < scenarios->scenario_definition_count; ++i)
     {
@@ -46,37 +54,53 @@ void GherkinProtocolConnector::acceptOnce(GherkinDocumentPtr document)
             runScenarioOutline(scenario_outline);
         }
     }
+
+    m_listener->onFeatureEnd(narrowString(documentFeature->name));
 }
 
 void GherkinProtocolConnector::runScenario(const ::Scenario* scenario)
 {
     std::vector<std::string> tags = GherkinProtocolUtils::getTagsToStringArray(scenario->tags);
+    std::string narrowScenarioName = narrowString(scenario->name);
+
     m_engine->beginScenario(tags);
+    m_listener->onScenarioStarted(narrowScenarioName);
+
     try
     {
         runSteps(scenario->steps);
     }
     catch(std::exception&)
     {
+        m_listener->onScenarioEnd(narrowScenarioName);
         m_engine->endScenario(tags);
         throw;
     }
+
+    m_listener->onScenarioEnd(narrowScenarioName);
     m_engine->endScenario(tags);
 }
 
 void GherkinProtocolConnector::runScenarioOutline(const ScenarioOutline* scenarioOutline)
 {
     std::vector<std::string> tags = GherkinProtocolUtils::getTagsToStringArray(scenarioOutline->tags);
+    std::string narrowScenarioName = narrowString(scenarioOutline->name);
+
+    m_listener->onScenarioStarted(narrowScenarioName);
     m_engine->beginScenario(tags);
+    
     try
     {
         runExamples(scenarioOutline->steps, GherkinProtocolUtils::getExamples(scenarioOutline));
     }
     catch(std::exception&)
     {
+        m_listener->onScenarioEnd(narrowScenarioName);
         m_engine->endScenario(tags);
         throw;
     }
+
+    m_listener->onScenarioEnd(narrowScenarioName);
     m_engine->endScenario(tags);
 }
 
@@ -98,8 +122,7 @@ void GherkinProtocolConnector::runExamples(
         {
             const Step* thisStep = &steps->steps[step];
             std::string initialStepText = narrowString(thisStep->text);
-            std::string finalStepText = GherkinProtocolUtils::replaceStepTextWithExample(
-                initialStepText, examples, example);
+            std::string finalStepText = GherkinProtocolUtils::replaceStepTextWithExample(initialStepText, examples, example);
             runStep(thisStep, finalStepText);
         }
     }
@@ -135,9 +158,24 @@ void GherkinProtocolConnector::runStep(const Step* step, const std::string& full
     else
     {
         const StepMatch& matchedStep = *stepMatches.begin();
-        std::vector<std::string> arguments = GherkinProtocolUtils::getStringArguments(step);
         CukeEngine::invoke_table_type emptyTableArgs;
-        m_engine->invokeStep(matchedStep.id, arguments, emptyTableArgs);
+        CukeEngine::invoke_args_type arguments;
+        for (std::vector<StepMatchArg>::const_iterator it = matchedStep.args.begin(); it != matchedStep.args.end(); ++it)
+        {
+            arguments.push_back(it->value);
+        }
+
+        try {
+            m_listener->onTestStarted(fullStepText);
+            m_engine->invokeStep(matchedStep.id, arguments, emptyTableArgs);
+            m_listener->onTestPassed(fullStepText);
+        } catch (const InvokeFailureException& e) {
+            m_listener->onTestFailed(fullStepText, e.getMessage(), e.getExceptionType());
+        } catch (const PendingStepException& e) {
+            m_listener->onTestPending(fullStepText, e.getMessage());
+        } catch (...) {
+            m_listener->onTestFailed(fullStepText, "Unknown Failure", "Unknown");
+        }
     }
 }
 
