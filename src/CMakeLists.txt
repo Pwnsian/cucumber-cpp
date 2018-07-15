@@ -18,6 +18,8 @@ set(CUKE_SOURCES
     connectors/gherkin/GherkinProtocol.cpp
     connectors/gherkin/parser/GherkinParser.cpp
     connectors/gherkin/output/GherkinProductionPrinter.cpp
+    connectors/gherkin/output/GherkunJunitReporter.cpp
+    connectors/gherkin/output/JUnitReporter.cpp
     connectors/gherkin/utility/Utility.cpp
     connectors/gherkin/utility/Exceptions.cpp
     )

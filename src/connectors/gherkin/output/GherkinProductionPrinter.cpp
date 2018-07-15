@@ -2,6 +2,8 @@
 #include <cucumber-cpp/internal/connectors/gherkin/utility/Utility.hpp>
 #include <iostream>
 
+#include <boost/test/unit_test.hpp>
+
 using namespace cucumber::internal;
 
 GherkinProductionPrinter::GherkinProductionPrinter(std::ostream& out)
